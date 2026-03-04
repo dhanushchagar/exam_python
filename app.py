@@ -4,10 +4,8 @@ from oauth2client.service_account import ServiceAccountCredentials
 from datetime import datetime
 from questions import questions
 import time
-
 import os
 import json
-from oauth2client.service_account import ServiceAccountCredentials
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "fallback-secret")
@@ -18,12 +16,16 @@ EXAM_DURATION = 45 * 60  # 45 minutes
 
 creds_dict = json.loads(os.environ["GOOGLE_CREDS"])
 
-scope = ["https://spreadsheets.google.com/feeds",
-         "https://www.googleapis.com/auth/drive"]
+scope = [
+    "https://spreadsheets.google.com/feeds",
+    "https://www.googleapis.com/auth/drive"
+]
 
 creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
 client = gspread.authorize(creds)
 sheet = client.open("Exam Results").sheet1
+
+
 # ---------------- REGISTER PAGE ---------------- #
 
 @app.route("/", methods=["GET", "POST"])
@@ -34,16 +36,18 @@ def register():
         dept = request.form["dept"]
 
         # Prevent duplicate roll number
-         records = sheet.get_all_records()
+        records = sheet.get_all_records()
 
-for row in records:
-    if str(row.get("Roll", "")).strip() == roll.strip():
-        return "You already attended the exam!"
+        for row in records:
+            if str(row.get("Roll", "")).strip() == roll.strip():
+                return "You already attended the exam!"
 
+        # Store session data
         session["name"] = name
         session["roll"] = roll
         session["dept"] = dept
         session["start_time"] = int(time.time())
+        session["submitted"] = False
 
         return redirect("/exam")
 
@@ -57,7 +61,7 @@ def exam():
     if "name" not in session:
         return redirect("/")
 
-    start_time = session["start_time"]
+    start_time = session.get("start_time")
     current_time = int(time.time())
     time_left = EXAM_DURATION - (current_time - start_time)
 
@@ -74,9 +78,11 @@ def exam():
         session["score"] = score
         return redirect("/submit")
 
-    return render_template("exam.html",
-                           questions=questions,
-                           time_left=time_left)
+    return render_template(
+        "exam.html",
+        questions=questions,
+        time_left=time_left
+    )
 
 
 # ---------------- SUBMIT PAGE ---------------- #
@@ -90,19 +96,21 @@ def submit():
     if session.get("submitted"):
         return "Already submitted!"
 
-    name = session["name"]
-    roll = session["roll"]
-    dept = session["dept"]
+    name = session.get("name")
+    roll = session.get("roll")
+    dept = session.get("dept")
     score = session.get("score", 0)
 
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
+    # Save to Google Sheet
     sheet.append_row([name, roll, dept, score, now])
 
     session["submitted"] = True
     session.clear()
 
     return render_template("result.html", score=score)
+
+
 if __name__ == "__main__":
     app.run(debug=True)
-
