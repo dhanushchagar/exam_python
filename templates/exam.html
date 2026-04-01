@@ -86,20 +86,70 @@
 
 <script>
 let timeLeft = {{ time_left }};
+let warningCount = 0;
 
+// ---------------- TIMER ---------------- //
 function startTimer() {
     let timer = setInterval(function() {
         timeLeft--;
         if (timeLeft <= 0) {
             clearInterval(timer);
-            document.getElementById("examForm").submit();
+            document.getElementById("examform").submit();
         }
-        document.getElementById("timer").innerHTML = 
+        document.getElementById("timer").innerHTML =
             Math.floor(timeLeft/60) + ":" + (timeLeft%60);
     }, 1000);
 }
 
-window.onload = startTimer;
+// ---------------- MOBILE APP SWITCH DETECTION ---------------- //
+document.addEventListener("visibilitychange", function() {
+    if (document.hidden) {
+        warningCount++;
+        alert("⚠️ Don't leave the exam!");
+
+        if (warningCount >= 1) {
+            alert("❌ Exam auto submitted!");
+            window.location.href = "/submit";
+        }
+    }
+});
+
+// ---------------- SCREEN MINIMIZE / BACK BUTTON ---------------- //
+window.addEventListener("pagehide", function() {
+    alert("❌ You left the exam!");
+    window.location.href = "/submit";
+});
+
+// ---------------- TOUCH BLOCK (COPY PREVENT) ---------------- //
+document.addEventListener("copy", e => e.preventDefault());
+document.addEventListener("cut", e => e.preventDefault());
+document.addEventListener("paste", e => e.preventDefault());
+
+// ---------------- DISABLE LONG PRESS ---------------- //
+document.addEventListener("contextmenu", function(e) {
+    e.preventDefault();
+});
+
+// ---------------- FORCE FULLSCREEN (WORKS PARTIALLY MOBILE) ---------------- //
+function enterFullScreen() {
+    let elem = document.documentElement;
+    if (elem.requestFullscreen) {
+        elem.requestFullscreen();
+    }
+}
+
+// ---------------- PREVENT BACK NAVIGATION ---------------- //
+history.pushState(null, null, location.href);
+window.onpopstate = function () {
+    alert("❌ Back button disabled!");
+    history.go(1);
+};
+
+// ---------------- START ---------------- //
+window.onload = function() {
+    startTimer();
+    enterFullScreen();
+};
 </script>
 
 </body>
