@@ -12,6 +12,7 @@ app.secret_key = os.environ.get("SECRET_KEY", "fallback-secret")
 
 EXAM_DURATION = 45 * 60  # 45 minutes
 
+
 # ---------------- GOOGLE SHEET SETUP ---------------- #
 
 creds_dict = json.loads(os.environ["GOOGLE_CREDS"])
@@ -31,16 +32,18 @@ sheet = client.open("Exam Results").sheet1
 @app.route("/", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
-        name = request.form["name"]
-        roll = request.form["roll"]
-        dept = request.form["dept"]
+        name = request.form["name"].strip()
+        roll = request.form["roll"].strip()
+        dept = request.form["dept"].strip()
 
-        # Prevent duplicate roll number
-        records = sheet.get_all_records()
+        # ✅ Fast duplicate check
+        try:
+            roll_list = [r.strip() for r in sheet.col_values(2)]
+        except:
+            roll_list = []
 
-        for row in records:
-            if str(row.get("Roll", "")).strip() == roll.strip():
-                return "You already attended the exam!"
+        if roll in roll_list:
+            return "You already attended the exam!"
 
         # Store session data
         session["name"] = name
@@ -65,11 +68,13 @@ def exam():
     current_time = int(time.time())
     time_left = EXAM_DURATION - (current_time - start_time)
 
+    # Auto submit if time over
     if time_left <= 0:
         return redirect("/submit")
 
     if request.method == "POST":
         score = 0
+
         for q in questions:
             selected = request.form.get(str(q["id"]))
             if selected == q["answer"]:
@@ -89,8 +94,6 @@ def exam():
 
 @app.route("/submit")
 def submit():
-  @app.route("/submit")
-def submit():
     if "name" not in session:
         return redirect("/")
 
@@ -105,9 +108,9 @@ def submit():
 
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    # ✅ SAFE SAVE
+    # ✅ Safe Google Sheet write
     try:
-        time.sleep(1)  # delay
+        time.sleep(0.5)  # small delay (better than 1 sec)
         sheet.append_row([name, roll, dept, score, now])
     except Exception as e:
         print("Sheet write failed:", e)
@@ -116,6 +119,9 @@ def submit():
     session.clear()
 
     return render_template("result.html", score=score)
+
+
+# ---------------- RUN APP ---------------- #
 
 if __name__ == "__main__":
     app.run(debug=True)
