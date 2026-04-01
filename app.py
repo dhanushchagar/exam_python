@@ -89,6 +89,8 @@ def exam():
 
 @app.route("/submit")
 def submit():
+  @app.route("/submit")
+def submit():
     if "name" not in session:
         return redirect("/")
 
@@ -103,14 +105,17 @@ def submit():
 
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-    # Save to Google Sheet
-    sheet.append_row([name, roll, dept, score, now])
+    # ✅ SAFE SAVE
+    try:
+        time.sleep(1)  # delay
+        sheet.append_row([name, roll, dept, score, now])
+    except Exception as e:
+        print("Sheet write failed:", e)
 
     session["submitted"] = True
     session.clear()
 
     return render_template("result.html", score=score)
-
 
 if __name__ == "__main__":
     app.run(debug=True)
