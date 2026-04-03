@@ -95,10 +95,10 @@ if "shuffled_questions" not in session:
 
     session["shuffled_questions"] = shuffled
 
-return render_template(
-    "exam.html",
-    questions=session["shuffled_questions"],
-    time_left=time_left
+    return render_template(
+      "exam.html",
+      questions=session["shuffled_questions"],
+      time_left=time_left
 )
 # ---------------- SUBMIT PAGE ---------------- #
 
