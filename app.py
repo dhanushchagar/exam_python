@@ -73,10 +73,22 @@ def exam():
     if time_left <= 0:
         return redirect("/submit")
 
+    # 🔀 Shuffle only once per student
+    if "shuffled_questions" not in session:
+        shuffled = questions.copy()
+        random.shuffle(shuffled)
+
+        # Shuffle options also
+        for q in shuffled:
+            random.shuffle(q["options"])
+
+        session["shuffled_questions"] = shuffled
+
+    # 🧮 Calculate score
     if request.method == "POST":
         score = 0
 
-        for q in questions:
+        for q in session["shuffled_questions"]:
             selected = request.form.get(str(q["id"]))
             if selected == q["answer"]:
                 score += 1
@@ -84,22 +96,12 @@ def exam():
         session["score"] = score
         return redirect("/submit")
 
-# Shuffle only once per student
-if "shuffled_questions" not in session:
-    shuffled = questions.copy()
-    random.shuffle(shuffled)
-
-    # Shuffle options also
-    for q in shuffled:
-        random.shuffle(q["options"])
-
-    session["shuffled_questions"] = shuffled
-
+    # Render exam
     return render_template(
-      "exam.html",
-      questions=session["shuffled_questions"],
-      time_left=time_left
-)
+        "exam.html",
+        questions=session["shuffled_questions"],
+        time_left=time_left
+    )
 # ---------------- SUBMIT PAGE ---------------- #
 
 @app.route("/submit")
