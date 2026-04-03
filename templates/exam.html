@@ -83,10 +83,13 @@
 
     <button type="submit">Submit Exam</button>
 </form>
-
 <script>
 let timeLeft = {{ time_left }};
 let warningCount = 0;
+
+// Store original screen size
+let originalWidth = window.innerWidth;
+let originalHeight = window.innerHeight;
 
 // ---------------- TIMER ---------------- //
 function startTimer() {
@@ -120,17 +123,49 @@ window.addEventListener("pagehide", function() {
     window.location.href = "/submit";
 });
 
+// ---------------- SPLIT SCREEN DETECTION ---------------- //
+window.addEventListener("resize", function () {
+    let currentWidth = window.innerWidth;
+    let currentHeight = window.innerHeight;
+
+    // Detect significant size reduction (split screen)
+    if (currentWidth < originalWidth - 100 || currentHeight < originalHeight - 100) {
+        warningCount++;
+
+        alert("❌ Split screen detected! Not allowed.");
+
+        if (warningCount >= 1) {
+            alert("❌ Exam auto submitted!");
+            window.location.href = "/submit";
+        }
+    }
+});
+
+// ---------------- ORIENTATION CHANGE (MOBILE) ---------------- //
+window.addEventListener("orientationchange", function () {
+    warningCount++;
+    alert("⚠️ Orientation change detected!");
+
+    if (warningCount >= 2) {
+        alert("❌ Exam auto submitted!");
+        window.location.href = "/submit";
+    }
+});
+
 // ---------------- TOUCH BLOCK (COPY PREVENT) ---------------- //
 document.addEventListener("copy", e => e.preventDefault());
 document.addEventListener("cut", e => e.preventDefault());
-document.addEventListener("paste", e => e.preventDefault());
+document.addEventListener("paste", function(e) {
+    alert("❌ Pasting is not allowed!");
+    e.preventDefault();
+});
 
 // ---------------- DISABLE LONG PRESS ---------------- //
 document.addEventListener("contextmenu", function(e) {
     e.preventDefault();
 });
 
-// ---------------- FORCE FULLSCREEN (WORKS PARTIALLY MOBILE) ---------------- //
+// ---------------- FORCE FULLSCREEN ---------------- //
 function enterFullScreen() {
     let elem = document.documentElement;
     if (elem.requestFullscreen) {
@@ -151,6 +186,5 @@ window.onload = function() {
     enterFullScreen();
 };
 </script>
-
 </body>
 </html>
