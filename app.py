@@ -5,6 +5,7 @@ from datetime import datetime
 from questions import questions
 import time
 import os
+import random
 import json
 
 app = Flask(__name__)
@@ -83,13 +84,22 @@ def exam():
         session["score"] = score
         return redirect("/submit")
 
-    return render_template(
-        "exam.html",
-        questions=questions,
-        time_left=time_left
-    )
+# Shuffle only once per student
+if "shuffled_questions" not in session:
+    shuffled = questions.copy()
+    random.shuffle(shuffled)
 
+    # Shuffle options also
+    for q in shuffled:
+        random.shuffle(q["options"])
 
+    session["shuffled_questions"] = shuffled
+
+return render_template(
+    "exam.html",
+    questions=session["shuffled_questions"],
+    time_left=time_left
+)
 # ---------------- SUBMIT PAGE ---------------- #
 
 @app.route("/submit")
